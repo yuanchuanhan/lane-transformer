@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
-from fractions import gcd
+from math import gcd
 
 class LinearRes(nn.Module):
     def __init__(self, n_in, n_out, norm='GN', ng=32):

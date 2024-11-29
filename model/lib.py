@@ -1,6 +1,6 @@
 from re import X
 from turtle import forward
-from fractions import gcd
+from math import gcd
 import time
 import torch
 import torch.nn as nn

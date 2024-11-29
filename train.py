@@ -17,7 +17,7 @@ from utils import *
 from argoverse_dataset import Argoverse_Dataset, collate_fn
 from model.LaneTransformer import LaneTransformer
 from matplotlib import pyplot as plt
-from argoverse.evaluation import eval_forecasting
+from argoverse import eval_forecasting
 from argoverse.evaluation import competition_util
 
 
@@ -31,9 +31,9 @@ import time
 import csv
 
 global hidden_size
-train_path = '/home/wzb/Datasets/Argoverse/train/data/'
-val_path = '/home/wzb/Datasets/Argoverse/val/data/'
-test_path = '/home/wzb/Datasets/Argoverse/test_obs/data/'
+train_path = '/Users/chuanhanyuan/Desktop/code/Lane-Transformer/argoverse-api/train/data'
+val_path = '/Users/chuanhanyuan/Desktop/code/Lane-Transformer/argoverse-api/val/data'
+test_path = '/Users/chuanhanyuan/Desktop/code/Lane-Transformer/argoverse-api/test_obs/data'
 
 os.environ['TORCH_DISTRIBUTED_DEBUG'] = 'DETAIL'
 os.environ['CUDA_VISIBLE_DEVICE']='1'

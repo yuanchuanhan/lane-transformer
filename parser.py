@@ -19,7 +19,7 @@ def get_training_parser():
     parser.add_argument("--lab_name", default="baseline", type=str)
 
     # dataset setting
-    parser.add_argument("--pkl_save_dir", default="/workspace2/wzb/Datasets/Argoverse/pkl/", type=str)
+    parser.add_argument("--pkl_save_dir", default="/Users/chuanhanyuan/Desktop/code/Lane-Transformer/Dataset/Argoverse/pkl/", type=str)
     parser.add_argument("--resume", default=1)
     parser.add_argument("--loader_num_workers", default=1, type=int)
 
