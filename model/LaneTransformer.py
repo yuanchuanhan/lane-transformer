@@ -34,7 +34,7 @@ class LaneTransformer(nn.Module):
         batch_size = len(mapping['actor_polyline_input_length'])
         actor_max_polyline_num, actor_max_vec_num, actor_vec_len = mapping['actor_max_polyline_num'], mapping['actor_max_vec_num'], mapping['actor_vec_len']
         map_max_polyline_num, map_max_vec_num, map_vec_len = mapping['map_max_polyline_num'], mapping['map_max_vec_num'], mapping['map_vec_len']
-        hidden_size = 128
+        hidden_size = self.args.hidden_size
 
         actor_input, actor_input_mask = torch.flatten(mapping['actor_total_input_padding'], start_dim=0, end_dim=1).to(device), mapping['actor_input_mask'].to(device)
         map_input, map_input_mask = torch.flatten(mapping['map_total_input_padding'], start_dim=0, end_dim=1).to(device), mapping['map_input_mask'].to(device)

@@ -182,13 +182,34 @@ def collate_fn(batch):
     data['file_names'] = file_names
     data['city_names'] = city_names
 
-    # data['actor_input_mask'] = data['actor_input_mask'].bool()
-    # data['map_input_mask'] = data['map_input_mask'].bool()
-    # data['actor_polyline_mask'] = data['actor_polyline_mask'].bool()
-    # data['map_polyline_mask'] = data['map_polyline_mask'].bool()
-    # data['global_graph_mask'] = data['global_graph_mask'].bool()
+    batch_dict = {
+        'actor_total_input_padding': actor_total_input_padding,
+        'actor_input_mask': data['actor_input_mask'],
+        'map_total_input_padding': map_total_input_padding,
+        'map_input_mask': data['map_input_mask'],
+        'actor_polyline_mask': data['actor_polyline_mask'],
+        'map_polyline_mask': data['map_polyline_mask'],
+        'global_graph_mask': data['global_graph_mask'],
+        'actor_max_polyline_num': data['actor_max_polyline_num'],
+        'actor_max_vec_num': data['actor_max_vec_num'],
+        'actor_vec_len': data['actor_vec_len'],
+        'map_max_polyline_num': data['map_max_polyline_num'],
+        'map_max_vec_num': data['map_max_vec_num'],
+        'map_vec_len': data['map_vec_len'],
+        'GT': data['GT'],
+        'GT_rel': data['GT_rel'],
+        'target': data['target'],
+        'target_rel': data['target_rel'],
+        'cent_x': data['cent_x'],
+        'cent_y': data['cent_y'],
+        'angle': data['angle'],
+        'file_name': data['file_names'],
+        'city_name': data['city_names'],
+        'actor_polyline_input_length': actor_polyline_input_length,
+        'valid_actor_polyline': data['valid_actor_polyline']
+    }
 
-    return data
+    return batch_dict
 
 def preprocess(args, lines, file):
     global max_total_vec_num
@@ -293,10 +314,17 @@ def preprocess(args, lines, file):
     data_dict['map_start_polyline_index'] = len(vectors_indexs)
 
     ## 地图的获取
+    print(f"\nProcessing map data for {file}")
+    print(f"Center position: ({data_dict['cent_x']}, {data_dict['cent_y']})")
+    print(f"City name: {data_dict['city_name']}")
+    
     lane_ids = argo_map.get_lane_ids_in_xy_bbox(data_dict['cent_x'], data_dict['cent_y'], city_name=data_dict['city_name'], query_search_range_manhattan=50.)
+    print(f"Number of lane IDs found: {len(lane_ids)}")
+    
     semantic_lane_centerlines = [argo_map.get_lane_segment_centerline(lane_id, data_dict['city_name']) for lane_id in lane_ids]
     lane_centerlines = [semantic_lane_centerline[:, :2].copy() for semantic_lane_centerline in semantic_lane_centerlines]
-
+    print(f"Number of lane centerlines: {len(lane_centerlines)}")
+    
     for lane_centerline in lane_centerlines:
         for point in lane_centerline:
             point[0], point[1] = rotate(point[0] - data_dict['cent_x'], point[1] - data_dict['cent_y'], angle)
@@ -354,23 +382,26 @@ class Argoverse_Dataset(Dataset):
 
         resume_dir = args.pkl_save_dir
 
-        if args.resume and os.path.exists(resume_dir):
-            
+        # 检查预处理目录是否存在且不为空
+        has_preprocessed_data = False
+        if os.path.exists(resume_dir):
+            files = [f for f in os.listdir(resume_dir) if f.endswith('.pkl')]
+            has_preprocessed_data = len(files) > 0
+
+        if has_preprocessed_data:
+            print(f"Loading preprocessed data from {resume_dir}")
             files = []
             _, _, file_names = os.walk(resume_dir).__next__()
             files.extend([os.path.join(resume_dir, file_name) for file_name in file_names if file_name.endswith("pkl") and not file_name.startswith('.')])
-            # files = files[:2000]
             files = np.sort(files)
-
-
             self.files_list.append(files)
 
             with tqdm(total=len(files)) as t:
                 for file in files:    
                     self.data.append(file)
                     t.update(1)
-
         else:
+            print(f"Processing raw data and saving to {resume_dir}")
             global argo_map
             argo_map = ArgoverseMap()
 
@@ -378,27 +409,35 @@ class Argoverse_Dataset(Dataset):
                 os.makedirs(resume_dir)
 
             cases = []
-            # _, _, file_names = os.walk(self.data_path).__next__()
-            cases = [case for case in os.listdir(self.datas_dir)]
+            cases = [case for case in os.listdir(self.datas_dir) if case.endswith('.csv')]
             cases.sort()
-            # cases = cases[:20000]
-            # files.extend([os.path.join(self.data_path, file_name) for file_name in file_names if file_name.endswith("pkl")])
 
             with tqdm(total=(len(cases))) as t:
                 for index, case in enumerate(cases):
                     case_path = os.path.join(self.datas_dir, case)
 
-                    with open(case_path, "r", encoding='utf-8') as f:
-                        case_lines = f.readlines()[1:]
+                    try:
+                        with open(case_path, 'r', encoding='utf-8', errors='ignore') as f:
+                            case_lines = f.readlines()[1:]
+                    except Exception as e:
+                        print(f"Error reading file {case}: {str(e)}")
+                        continue
                     
-                    case_data_temp = preprocess(args, case_lines, case)
-                    if args.resume:
-                        name = f"case{index}.pkl"
-                        self.data.append(os.path.join(resume_dir, name))
-                        with open(os.path.join(resume_dir, name), "wb") as f:
-                            pickle.dump(case_data_temp, f, protocol=pickle.HIGHEST_PROTOCOL)
-                        f.close()
+                    try:
+                        case_data_temp = preprocess(args, case_lines, case)
+                        if case_data_temp is not None:  # 确保预处理成功
+                            name = f"case{index}.pkl"
+                            pkl_path = os.path.join(resume_dir, name)
+                            self.data.append(pkl_path)
+                            with open(pkl_path, "wb") as f:
+                                pickle.dump(case_data_temp, f, protocol=pickle.HIGHEST_PROTOCOL)
+                    except Exception as e:
+                        print(f"Error processing file {case}: {str(e)}")
+                        continue
+                    
                     t.update(1)
+                
+                print(f"Successfully processed {len(self.data)} files")
 
     def __len__(self) -> int:
         if self.args.data_augment == 0 or self.type == 'val':
@@ -446,9 +485,9 @@ class Argoverse_Dataset(Dataset):
 if __name__ == '__main__':
     args = get_training_parser().parse_args()
 
-    train_path = '/home/wzb/Datasets/Argoverse/train/data/'
-    val_path = '/home/wzb/Datasets/Argoverse/val/data/'
-    test_path = '/workspace1/wzb/Datasets/Argoverse/test_obs/data/'
+    train_path = '/Users/chuanhanyuan/Desktop/code/testdata/train/'
+    val_path = '/Users/chuanhanyuan/Desktop/code/testdata/val/'
+    test_path = '/Users/chuanhanyuan/Desktop/code/testdata/test_obs/'
 
 
     args.pkl_save_dir = os.path.join(args.pkl_save_dir, 'train')
@@ -462,4 +501,3 @@ if __name__ == '__main__':
     args.pkl_save_dir = os.path.join(args.pkl_save_dir, 'test')
     Test_Dataset = Argoverse_Dataset(args, test_path)
     args.pkl_save_dir = "/".join(args.pkl_save_dir.split('/')[:-1])
-

@@ -19,15 +19,15 @@ def get_training_parser():
     parser.add_argument("--lab_name", default="baseline", type=str)
 
     # dataset setting
-    parser.add_argument("--pkl_save_dir", default="/Users/chuanhanyuan/Desktop/code/Lane-Transformer/Dataset/Argoverse/pkl/", type=str)
-    parser.add_argument("--resume", default=1)
+    parser.add_argument("--pkl_save_dir", default="/Users/chuanhanyuan/Desktop/code/Lane-Transformer/Dataset/datasets/", type=str)
+    parser.add_argument("--resume", default=0)
     parser.add_argument("--loader_num_workers", default=1, type=int)
 
     # train setting
     parser.add_argument("--lr", default=0.0005)
     parser.add_argument("--batch_size", default=16)
-    parser.add_argument("--warm_up_epochs", default=10)
-    parser.add_argument("--num_epochs", default=60)
+    parser.add_argument("--warm_up_epochs", default=1)
+    parser.add_argument("--num_epochs", default=100)
     parser.add_argument("--continue_training", default=0)
     parser.add_argument("--distributed_training", default=0)
     parser.add_argument("--k_num", default=6)

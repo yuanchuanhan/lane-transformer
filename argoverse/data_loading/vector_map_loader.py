@@ -46,7 +46,7 @@ from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Tuple, Un
 
 import numpy as np
 
-from argoverseapi.argoverse.map_representation.lane_segment import LaneSegment
+from argoverse.map_representation.lane_segment import LaneSegment
 
 logger = logging.getLogger(__name__)
 

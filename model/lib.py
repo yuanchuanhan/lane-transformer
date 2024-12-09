@@ -159,13 +159,11 @@ class map_smooth_decoder(nn.Module):
         self.test1 = nn.Linear(9, 5)
         self.test2 = nn.Linear(5, 1)
         self.test_norm1 = nn.BatchNorm1d(128)
-    
+
     def forward(self, x):
         x = x.permute(0, 2, 1)
-
         x = self.test_norm1(F.relu(self.test1(x)))
         x = self.test2(x)
-
         return x[:, :, 0]
 
 class actor_smooth_decoder(nn.Module):
@@ -176,12 +174,10 @@ class actor_smooth_decoder(nn.Module):
         self.test2 = nn.Linear(9, 1)
         self.test_norm1 = nn.BatchNorm1d(128)
         
-    
     def forward(self, x):
         x = x.permute(0, 2, 1)
         x = self.test_norm1(F.relu(self.test1(x)))
         x = self.test2(x)
-
         return x[:, :, 0]
 
 class BottleNeck(nn.Module):

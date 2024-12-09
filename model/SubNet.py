@@ -68,4 +68,3 @@ class MapSubNet(nn.Module):
         
         hidden_states_batch = self.final_layer(hidden_states_batch)
         return hidden_states_batch
-

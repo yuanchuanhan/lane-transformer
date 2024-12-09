@@ -1,6 +1,6 @@
 from base64 import b16encode
 from numpy import float32
-from torch.utils.tensorboard import SummaryWriter
+from torch.utils.tensorboard.writer import SummaryWriter
 import torch.nn.functional as F
 import torch.nn as nn
 import torch.distributed as dist
@@ -17,7 +17,7 @@ from utils import *
 from argoverse_dataset import Argoverse_Dataset, collate_fn
 from model.LaneTransformer import LaneTransformer
 from matplotlib import pyplot as plt
-from argoverse import eval_forecasting
+from argoverse.evaluation import eval_forecasting
 from argoverse.evaluation import competition_util
 
 
@@ -31,9 +31,9 @@ import time
 import csv
 
 global hidden_size
-train_path = '/Users/chuanhanyuan/Desktop/code/Lane-Transformer/argoverse-api/train/data'
-val_path = '/Users/chuanhanyuan/Desktop/code/Lane-Transformer/argoverse-api/val/data'
-test_path = '/Users/chuanhanyuan/Desktop/code/Lane-Transformer/argoverse-api/test_obs/data'
+train_path = '/Users/chuanhanyuan/Desktop/code/testdata/train/'
+val_path = '/Users/chuanhanyuan/Desktop/code/testdata/val/'
+test_path = '/Users/chuanhanyuan/Desktop/code/testdata/test_obs/'
 
 os.environ['TORCH_DISTRIBUTED_DEBUG'] = 'DETAIL'
 os.environ['CUDA_VISIBLE_DEVICE']='1'
@@ -277,6 +277,7 @@ def validation(args, model, loader, device):
         print(f"MR(k=6): {miss_rate}, min ADE(k=6): {min_ADE}, min FDE(k=6): {min_FDE}, sum true(k=6): {a}, sum data: {b}, MR(k=1): {miss_rate_k1}, min ADE(k=1): {min_ADE_k1}, min FDE(k=1): {min_FDE_k1}, sum true(k=1): {a_k1},")
     return miss_rate, min_ADE, min_FDE
 
+
 def test(args, model, loader, device):
     final_result = []
     file_name = []
@@ -369,10 +370,16 @@ def main(local_rank, args):
     if args.mode != 'val':
         args.pkl_save_dir = os.path.join(args.pkl_save_dir, 'train')
         train_dataset = Argoverse_Dataset(args, train_path)
+        print(f"Dataset size: {len(train_dataset)}")
         args.pkl_save_dir = "/".join(args.pkl_save_dir.split('/')[:-1])
 
         if args.distributed_training:
             train_sampler = DistributedSampler(train_dataset, shuffle=True)
+            print(f"Distributed Training: {args.distributed_training}")
+            print(f"Train Dataset: {train_dataset}")
+            print(f"Current Mode: {args.mode}")
+            print(f"Distributed Training: {args.distributed_training}")
+            print(f"Train Dataset: {train_dataset}")
             train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size // dist.get_world_size(), collate_fn=collate_fn, num_workers=8,sampler=train_sampler)
         else:
             train_dataloader = DataLoader(train_dataset,batch_size=args.batch_size,shuffle=True,num_workers=args.loader_num_workers,collate_fn=collate_fn,pin_memory=False,drop_last=False)
@@ -421,7 +428,7 @@ def main(local_rank, args):
             print("2. Training and Validation")
 
         if args.continue_training:
-            load_checkpoint('./saved/#load_model#', model, optimizer)
+            load_checkpoint('./saved/baseline/baseline_epoch_53.2024-12-03-18_08_19.MR_0.44166666666666665.pth', model, optimizer)
 
         total_num = sum(p.numel() for p in model.parameters())
         trainable_num = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -491,7 +498,7 @@ def main(local_rank, args):
                     f.write(f"{nowt} Validation Dataset: Epoch: {epoch}, MR: {mr}, min ADE: {ade}, min FDE: {fde}\n")
                     f.close()
     elif args.mode == "val":
-        load_checkpoint('./saved/#load_model#', model, optimizer)
+        load_checkpoint('./saved/baseline/baseline_epoch_53.2024-12-03-18_08_19.MR_0.44166666666666665.pth', model, optimizer)
         print("\nValidating: ")
         val_loader = enumerate(val_dataloader)
         if args.distributed_training == 0 or dist.get_rank() == 0:
@@ -509,7 +516,7 @@ def main(local_rank, args):
                 f.write(f"{nowt} Validation Dataset: MR: {mr}, min ADE: {ade}, min FDE: {fde}\n")
             f.close()
     elif args.mode == 'test':
-        load_checkpoint('./saved/#load_model#', model, optimizer)
+        load_checkpoint('./saved/baseline/baseline_epoch_53.2024-12-03-18_08_19.MR_0.44166666666666665.pth', model, optimizer)
         print("\nTesting: ")
         test_loader = enumerate(test_dataloader)
         if args.distributed_training == 0 or dist.get_rank() == 0:
